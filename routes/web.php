@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/api', function () {
-    Route::get('/api', [AuthController::class, 'successResponse']);
+// Route d'accueil : affiche la vue home contenant les règles de confidentialité
+Route::get('/', function () {
+    return view('home');
 });
