@@ -45,10 +45,26 @@ class CycleController extends Controller
      */
     public function close(Tontine $tontine, Cycle $cycle)
     {
-        // Vérifier que l'utilisateur est le président
-        $president = $tontine->members()->where('role', 'president')->first();
-        if (!$president || $president->user_id !== auth()->id()) {
-            return response()->json(['message' => 'Seul le président peut clôturer un cycle'], 403);
+        // Vérifier que le cycle appartient bien à la tontine
+        if ((int) $cycle->tontine_id !== (int) $tontine->id) {
+            return response()->json(['message' => 'Cycle introuvable pour cette tontine'], 404);
+        }
+
+        // Autorisation de clôture:
+        // - créateur de la tontine, OU
+        // - président(e) identifié(e) par le même téléphone utilisateur
+        // Note: la table tontine_members n'a pas de user_id.
+        $user = auth()->user();
+        $isCreator = (int) $tontine->created_by === (int) auth()->id();
+        $isPresidentByPhone = $user
+            ? $tontine->members()
+                ->where('role', 'presidente')
+                ->where('phone', $user->phone)
+                ->exists()
+            : false;
+
+        if (!$isCreator && !$isPresidentByPhone) {
+            return response()->json(['message' => 'Vous n\'avez pas l\'autorisation pour effectuer cette action.'], 403);
         }
         
         // Vérifier que le cycle est actif
