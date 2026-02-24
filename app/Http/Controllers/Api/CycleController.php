@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Cycle;
 use App\Models\Tontine;
 use App\Models\TontineMember;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class CycleController extends Controller
@@ -92,13 +93,35 @@ class CycleController extends Controller
         
         // Déterminer le prochain bénéficiaire
         $nextBeneficiary = $this->getNextBeneficiary($tontine, $cycle);
-        
+
+        $currentPeriodStart = $cycle->period_start
+            ? Carbon::parse($cycle->period_start)->startOfDay()
+            : ($cycle->created_at
+                ? Carbon::parse($cycle->created_at)->startOfDay()
+                : Carbon::today());
+        $currentPeriodEnd = $cycle->period_end
+            ? Carbon::parse($cycle->period_end)->endOfDay()
+            : $this->calculatePeriodEnd($currentPeriodStart, $tontine->frequency)->endOfDay();
+
+        // Compléter les champs de période du cycle courant si absents
+        if (!$cycle->period_start || !$cycle->period_end) {
+            $cycle->update([
+                'period_start' => $currentPeriodStart->toDateString(),
+                'period_end' => $currentPeriodEnd->toDateString(),
+            ]);
+        }
+
+        $nextPeriodStart = $currentPeriodEnd->copy()->addDay()->startOfDay();
+        $nextPeriodEnd = $this->calculatePeriodEnd($nextPeriodStart, $tontine->frequency);
+
         // Créer le cycle suivant
         $nextCycle = Cycle::create([
             'tontine_id' => $tontine->id,
             'cycle_number' => $cycle->cycle_number + 1,
             'beneficiary_id' => $nextBeneficiary?->id,
             'status' => 'active',
+            'period_start' => $nextPeriodStart->toDateString(),
+            'period_end' => $nextPeriodEnd->toDateString(),
         ]);
         
         return response()->json([
@@ -133,6 +156,19 @@ class CycleController extends Controller
         }
         
         return $nextBeneficiary;
+    }
+
+    private function calculatePeriodEnd(Carbon $startDate, string $frequency): Carbon
+    {
+        return match ($frequency) {
+            'daily' => $startDate->copy(),
+            'weekly' => $startDate->copy()->addDays(6),
+            'biweekly' => $startDate->copy()->addDays(13),
+            'monthly' => $startDate->copy()->addMonth()->subDay(),
+            'quarterly' => $startDate->copy()->addMonths(3)->subDay(),
+            'yearly' => $startDate->copy()->addYear()->subDay(),
+            default => $startDate->copy()->addMonth()->subDay(),
+        };
     }
     
     /**

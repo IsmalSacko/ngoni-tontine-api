@@ -11,10 +11,14 @@ class Cycle extends Model
         'cycle_number',
         'beneficiary_id',
         'status',
+        'period_start',
+        'period_end',
         'completed_at',
     ];
 
     protected $casts = [
+        'period_start' => 'date',
+        'period_end' => 'date',
         'completed_at' => 'datetime',
     ];
 
@@ -33,4 +37,3 @@ class Cycle extends Model
         return $this->hasMany(Payment::class);
     }
 }
-
