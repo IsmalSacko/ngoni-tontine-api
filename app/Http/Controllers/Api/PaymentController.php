@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePaymentRequest;
 use App\Models\Payment;
 use App\Models\Tontine;
-use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
@@ -15,15 +14,16 @@ class PaymentController extends Controller
         return $tontine->payments()->with('member')->orderBy('paid_at', 'desc')->get();
     }
 
-    public function store (StorePaymentRequest $request){
+    public function store(StorePaymentRequest $request)
+    {
         // Loguer les données reçues pour débogage
         \Log::info('Payment request received:', $request->all());
-        
+
         $tontineId = $request->input('tontine_id');
         $cycleId = $request->input('cycle_id');
-        
+
         // Récupérer ou créer le cycle pour cette tontine
-        if (!$cycleId) {
+        if (! $cycleId) {
             // Si aucun cycle fourni, utiliser ou créer le cycle 1
             $cycle = \App\Models\Cycle::firstOrCreate(
                 ['tontine_id' => $tontineId, 'cycle_number' => 1],
@@ -34,7 +34,7 @@ class PaymentController extends Controller
         } else {
             // Vérifier que le cycle existe, sinon créer le cycle 1
             $cycle = \App\Models\Cycle::find($cycleId);
-            if (!$cycle) {
+            if (! $cycle) {
                 $cycle = \App\Models\Cycle::firstOrCreate(
                     ['tontine_id' => $tontineId, 'cycle_number' => 1],
                     ['beneficiary_id' => null]
@@ -43,7 +43,7 @@ class PaymentController extends Controller
                 \Log::info('Cycle not found, created new one:', ['cycle_id' => $cycleId]);
             }
         }
-        
+
         $payment = Payment::create([
             'tontine_id' => $tontineId,
             'tontine_member_id' => $request->input('tontine_member_id'),
@@ -51,11 +51,13 @@ class PaymentController extends Controller
             'amount' => $request->input('amount'),
             'method' => $request->input('method'),
             'validated_by' => auth()->id(),
-            'paid_at' => now(),
+            // Un paiement ancien se saisit à sa vraie date : les caisses arrivent
+            // dans l'app avec des années d'historique.
+            'paid_at' => $request->filled('paid_at') ? $request->date('paid_at')->setTimeFrom(now()) : now(),
         ]);
-        
+
         \Log::info('Payment created successfully:', ['payment_id' => $payment->id]);
-        
+
         return $payment;
     }
 }

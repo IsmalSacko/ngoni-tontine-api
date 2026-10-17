@@ -14,12 +14,12 @@ class TontineMemberController extends Controller
     {
         // Afficher seulement les membres actifs (si colonne status existe)
         $query = $tontine->members();
-        
+
         // Vérifier si colonne 'status' existe
         if (\Schema::hasColumn('tontine_members', 'status')) {
             $query->where('status', 'active');
         }
-        
+
         return $query->orderBy('order_position')->get();
     }
 
@@ -27,14 +27,14 @@ class TontineMemberController extends Controller
     {
         // Afficher seulement les membres en pause (si colonne status existe)
         $query = $tontine->members();
-        
+
         // Vérifier si colonne 'status' existe
         if (\Schema::hasColumn('tontine_members', 'status')) {
             $query->where('status', 'paused');
         } else {
             return [];
         }
-        
+
         return $query->orderBy('order_position')->get();
     }
 
@@ -99,4 +99,3 @@ class TontineMemberController extends Controller
         return response()->json(['message' => 'Membre réactivé'], 200);
     }
 }
-

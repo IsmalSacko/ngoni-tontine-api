@@ -44,7 +44,8 @@ class CreateTontineRequest extends FormRequest
             'name' => 'required|string|max:255',
             'type' => 'sometimes|in:'.implode(',', Tontine::TYPES),
             'amount' => 'required_unless:type,fundraising|nullable|integer|min:1',
-            'frequency' => 'required_unless:type,fundraising|nullable|in:daily,weekly,monthly,quarterly,yearly',
+            // Une collecte ou une part fixe n'a pas de période.
+            'frequency' => 'exclude_if:type,fundraising|exclude_if:type,share|required|in:daily,weekly,monthly,quarterly,yearly',
             'target_amount' => 'required_if:type,fundraising|nullable|integer|min:1',
             'description' => 'nullable|string|max:1000',
             'start_date' => 'nullable|date',

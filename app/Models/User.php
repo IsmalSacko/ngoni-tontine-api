@@ -13,6 +13,7 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -38,12 +39,13 @@ class User extends Authenticatable
         'pin_code',
     ];
 
-
-    public function tontines(){
+    public function tontines()
+    {
         return $this->hasMany(Tontine::class, 'created_by');
     }
 
-    public function ValidatedPayments(){
+    public function ValidatedPayments()
+    {
         return $this->hasMany(Payment::class, 'validated_by');
     }
 }

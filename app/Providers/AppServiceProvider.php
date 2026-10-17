@@ -5,7 +5,6 @@ namespace App\Providers;
 use App\Models\Tontine;
 use App\Policies\TontinePolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
-use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
 {

@@ -39,6 +39,7 @@ class StorePaymentRequest extends FormRequest
             ],
             'amount' => 'required|integer|min:1',
             'method' => 'required|in:cash,orange,wave',
+            'paid_at' => 'nullable|date|before_or_equal:today',
         ];
     }
 
@@ -50,6 +51,7 @@ class StorePaymentRequest extends FormRequest
         return [
             'tontine_member_id.exists' => 'Ce membre ne fait pas partie de cette caisse.',
             'cycle_id.exists' => 'Ce tour n\'appartient pas à cette caisse.',
+            'paid_at.before_or_equal' => 'La date du paiement ne peut pas être dans le futur.',
         ];
     }
 }

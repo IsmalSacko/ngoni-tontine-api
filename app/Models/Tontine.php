@@ -29,7 +29,13 @@ class Tontine extends Model
     /** Chacun donne ce qu'il peut, vers un objectif (mosquée, forage). */
     const TYPE_FUNDRAISING = 'fundraising';
 
-    const TYPES = [self::TYPE_ROTATING, self::TYPE_PERIODIC, self::TYPE_FUNDRAISING];
+    /**
+     * Chacun doit une part fixe, une fois, qu'il verse petit à petit (château
+     * d'eau : 200 000 F par membre).
+     */
+    const TYPE_SHARE = 'share';
+
+    const TYPES = [self::TYPE_ROTATING, self::TYPE_PERIODIC, self::TYPE_FUNDRAISING, self::TYPE_SHARE];
 
     const FREQUENCY_DAILY = 'daily';
 

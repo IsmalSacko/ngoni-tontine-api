@@ -23,7 +23,7 @@ class RegisterRequest extends FormRequest
     {
         return [
             'phone' => 'required|unique:users,phone',
-            'name'=> 'required|string',
+            'name' => 'required|string',
             'pin_code' => 'required|string|size:4',
         ];
     }

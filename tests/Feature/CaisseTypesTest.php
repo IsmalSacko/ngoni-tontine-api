@@ -124,3 +124,35 @@ it('refuses a payment for a member of another caisse', function () {
         ->assertUnprocessable()
         ->assertJsonValidationErrors('cycle_id');
 });
+
+it('creates all past periods of an old periodic caisse', function () {
+    $this->travelTo('2026-10-17');
+    $id = $this->postJson('/api/tontines', [
+        'name' => 'Caisse décès', 'type' => 'periodic', 'amount' => 2000,
+        'frequency' => 'monthly', 'start_date' => '2024-01-01',
+    ])->assertCreated()->json('data.id');
+
+    $cycles = Tontine::find($id)->cycles()->orderBy('cycle_number')->get();
+
+    // Janvier 2024 à octobre 2026 : 34 mois, le dernier en cours.
+    expect($cycles)->toHaveCount(34)
+        ->and($cycles->first()->status)->toBe('completed')
+        ->and($cycles->last()->status)->toBe('active')
+        ->and($cycles->last()->period_start->toDateString())->toBe('2026-10-01');
+});
+
+it('records an old payment at its real date, never in the future', function () {
+    $id = $this->postJson('/api/tontines', ['name' => 'A', 'type' => 'periodic', 'amount' => 1000, 'frequency' => 'monthly', 'start_date' => '2025-01-01'])->json('data.id');
+    $member = Tontine::find($id)->members()->create(['name' => 'Moussa', 'phone' => '70000004', 'role' => 'membre', 'order_position' => 1]);
+    $january = Tontine::find($id)->cycles()->where('cycle_number', 1)->first();
+
+    $this->postJson('/api/payments', [
+        'tontine_id' => $id, 'tontine_member_id' => $member->id, 'cycle_id' => $january->id,
+        'amount' => 1000, 'method' => 'cash', 'paid_at' => '2025-01-15',
+    ])->assertSuccessful()->assertJsonPath('paid_at', fn ($v) => str_starts_with($v, '2025-01-15'));
+
+    $this->postJson('/api/payments', [
+        'tontine_id' => $id, 'tontine_member_id' => $member->id, 'amount' => 1000, 'method' => 'cash',
+        'paid_at' => now()->addDays(3)->toDateString(),
+    ])->assertUnprocessable()->assertJsonValidationErrors('paid_at');
+});

@@ -20,6 +20,7 @@ class FrequencyHelper
     public static function toFrench(string $frequency): ?string
     {
         $map = array_flip(Tontine::FREQUENCY_MAP);
+
         return $map[$frequency] ?? null;
     }
 

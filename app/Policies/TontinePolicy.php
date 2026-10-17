@@ -1,10 +1,9 @@
 <?php
 
-
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\Tontine;
+use App\Models\User;
 
 class TontinePolicy
 {

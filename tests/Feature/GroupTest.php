@@ -125,12 +125,12 @@ it('counts every period since the start of a backdated caisse', function () {
         'name' => 'Décès', 'type' => 'periodic', 'amount' => 2000, 'frequency' => 'monthly',
         'group_id' => $group->id, 'start_date' => now()->subMonths(2)->toDateString(),
     ])->json('data.id');
-    $caisse = Tontine::find($id);
-    $this->postJson("/api/tontines/{$id}/cycles/{$caisse->cycles()->first()->id}/close")->assertOk();
 
     $statement = collect($this->getJson("/api/groups/{$group->id}/statement")->json('data'))->keyBy('member.name');
 
-    expect($statement['Moussa']['late_amount'])->toBe(2000)
+    // Deux mois passés, clos d'office à la création, et le mois en cours.
+    expect($statement['Moussa']['late_amount'])->toBe(4000)
+        ->and($statement['Moussa']['current_due'])->toBe(2000)
         ->and($statement['Moussa']['status'])->toBe('en_retard');
 });
 
@@ -140,8 +140,6 @@ it('does not charge a newcomer for periods closed before he joined', function ()
         'name' => 'Décès', 'type' => 'periodic', 'amount' => 2000, 'frequency' => 'monthly',
         'group_id' => $group->id, 'start_date' => now()->subMonths(2)->toDateString(),
     ])->json('data.id');
-    $caisse = Tontine::find($id);
-    $this->postJson("/api/tontines/{$id}/cycles/{$caisse->cycles()->first()->id}/close")->assertOk();
 
     $this->travel(2)->days();
     $this->postJson("/api/groups/{$group->id}/members", ['name' => 'Bakary', 'phone' => '70000013'])->assertCreated();
@@ -150,4 +148,38 @@ it('does not charge a newcomer for periods closed before he joined', function ()
 
     expect($statement['Bakary']['late_amount'])->toBe(0)
         ->and($statement['Bakary']['current_due'])->toBe(2000);
+});
+
+it('tracks a fixed share paid little by little (château d\'eau)', function () {
+    $group = village();
+    $id = $this->postJson('/api/tontines', [
+        'name' => 'Château d\'eau', 'type' => 'share', 'amount' => 200000,
+        'deadline' => now()->addMonths(6)->toDateString(), 'group_id' => $group->id,
+    ])->assertCreated()->assertJsonPath('data.type', 'share')->json('data.id');
+    $moussa = Tontine::find($id)->members()->where('name', 'Moussa')->first();
+
+    foreach ([50000, 30000] as $amount) {
+        $this->postJson('/api/payments', ['tontine_id' => $id, 'tontine_member_id' => $moussa->id, 'amount' => $amount, 'method' => 'cash'])
+            ->assertSuccessful();
+    }
+
+    $statement = collect($this->getJson("/api/groups/{$group->id}/statement")->json('data'))->keyBy('member.name');
+    $line = collect($statement['Moussa']['caisses'])->firstWhere('name', 'Château d\'eau');
+
+    expect($line['paid_total'])->toBe(80000)
+        ->and($line['current_due'])->toBe(120000)
+        ->and($line['status'])->toBe('a_payer');
+
+    // Date limite passée : le reste devient un retard.
+    $this->travel(7)->months();
+    $line = collect(collect($this->getJson("/api/groups/{$group->id}/statement")->json('data'))
+        ->keyBy('member.name')['Moussa']['caisses'])->firstWhere('name', 'Château d\'eau');
+    expect($line['late_amount'])->toBe(120000)->and($line['status'])->toBe('en_retard');
+});
+
+it('needs the share amount, not a frequency, for a fixed share', function () {
+    $this->postJson('/api/tontines', ['name' => 'Château', 'type' => 'share'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('amount')
+        ->assertJsonMissingValidationErrors('frequency');
 });

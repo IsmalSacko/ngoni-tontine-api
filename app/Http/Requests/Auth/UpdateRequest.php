@@ -22,9 +22,9 @@ class UpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone' => 'required|unique:users,phone,' . auth()->id(),
-            'name'=> 'required|string',
-            'email' => 'nullable|email|unique:users,email,' . auth()->id(),
+            'phone' => 'required|unique:users,phone,'.auth()->id(),
+            'name' => 'required|string',
+            'email' => 'nullable|email|unique:users,email,'.auth()->id(),
         ];
     }
 }

@@ -53,6 +53,8 @@ class TontineController extends Controller
             'period_end' => $periodEnd->toDateString(),
         ]);
 
+        $this->catchUpPeriods($tontine);
+
         // Les membres du groupe sont inscrits d'office dans sa nouvelle caisse.
         if ($group !== null) {
             foreach ($group->members()->orderBy('id')->get() as $member) {
@@ -99,6 +101,34 @@ class TontineController extends Controller
         $tontine->delete();
 
         return response()->json(['message' => 'Tontine supprimée avec succès'], 200);
+    }
+
+    /**
+     * Une cotisation régulière qui existe depuis longtemps reçoit d'un coup
+     * toutes ses périodes jusqu'à aujourd'hui : les passées sont closes (les
+     * anciens paiements s'y rattachent), celle d'aujourd'hui est en cours.
+     * Plafonné, pour qu'une caisse quotidienne vieille de dix ans ne crée pas
+     * des milliers de lignes.
+     */
+    private function catchUpPeriods(Tontine $tontine): void
+    {
+        if ($tontine->type !== Tontine::TYPE_PERIODIC) {
+            return;
+        }
+
+        $cycle = $tontine->cycles()->first();
+        $today = Carbon::today();
+
+        for ($guard = 0; $guard < 600 && Carbon::parse($cycle->period_end)->lt($today); $guard++) {
+            $cycle->update(['status' => 'completed', 'completed_at' => Carbon::parse($cycle->period_end)->endOfDay()]);
+            $start = Carbon::parse($cycle->period_end)->addDay()->startOfDay();
+            $cycle = $tontine->cycles()->create([
+                'cycle_number' => $cycle->cycle_number + 1,
+                'status' => 'active',
+                'period_start' => $start->toDateString(),
+                'period_end' => $this->calculatePeriodEnd($start, $tontine->frequency)->toDateString(),
+            ]);
+        }
     }
 
     private function calculatePeriodEnd(Carbon $startDate, string $frequency): Carbon
