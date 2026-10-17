@@ -45,14 +45,14 @@ class TontineController extends Controller
         $periodStart = $request->filled('start_date')
             ? Carbon::parse($request->start_date)->startOfDay()
             : Carbon::today();
-        $periodEnd = $this->calculatePeriodEnd($periodStart, $tontine->frequency);
+        $periodEnd = $tontine->periodEndFrom($periodStart);
 
         // Créer automatiquement le premier cycle
         $tontine->cycles()->create([
             'cycle_number' => 1,
             'beneficiary_id' => null, // Sera défini plus tard
             'period_start' => $periodStart->toDateString(),
-            'period_end' => $periodEnd->toDateString(),
+            'period_end' => $periodEnd?->toDateString(),
         ]);
 
         $this->catchUpPeriods($tontine);
@@ -85,13 +85,15 @@ class TontineController extends Controller
         $request->validate([
             'name' => 'sometimes|required|string',
             'amount' => 'sometimes|required|integer|min:0',
-            'frequency' => 'sometimes|required|in:daily,weekly,biweekly,monthly,quarterly,yearly',
+            'frequency' => 'sometimes|required|in:'.implode(',', Tontine::FREQUENCIES),
+            'period_count' => 'sometimes|nullable|integer|min:1|max:60',
+            'period_unit' => 'sometimes|nullable|in:'.implode(',', Tontine::PERIOD_UNITS),
             'description' => 'sometimes|nullable|string',
             'target_amount' => 'sometimes|nullable|integer|min:1',
             'deadline' => 'sometimes|nullable|date',
         ]);
 
-        $tontine->update($request->only('name', 'amount', 'frequency', 'description', 'target_amount', 'deadline'));
+        $tontine->update($request->only('name', 'amount', 'frequency', 'period_count', 'period_unit', 'description', 'target_amount', 'deadline'));
         $tontine->loadSum('payments', 'amount')->loadSum('expenses', 'amount');
 
         return new TontineResource($tontine);
@@ -114,35 +116,22 @@ class TontineController extends Controller
      */
     private function catchUpPeriods(Tontine $tontine): void
     {
-        if ($tontine->type !== Tontine::TYPE_PERIODIC) {
+        if ($tontine->type !== Tontine::TYPE_PERIODIC || $tontine->isOneTime()) {
             return;
         }
 
         $cycle = $tontine->cycles()->first();
         $today = Carbon::today();
 
-        for ($guard = 0; $guard < 600 && Carbon::parse($cycle->period_end)->lt($today); $guard++) {
+        for ($guard = 0; $guard < 600 && $cycle->period_end && Carbon::parse($cycle->period_end)->lt($today); $guard++) {
             $cycle->update(['status' => 'completed', 'completed_at' => Carbon::parse($cycle->period_end)->endOfDay()]);
             $start = Carbon::parse($cycle->period_end)->addDay()->startOfDay();
             $cycle = $tontine->cycles()->create([
                 'cycle_number' => $cycle->cycle_number + 1,
                 'status' => 'active',
                 'period_start' => $start->toDateString(),
-                'period_end' => $this->calculatePeriodEnd($start, $tontine->frequency)->toDateString(),
+                'period_end' => $tontine->periodEndFrom($start)?->toDateString(),
             ]);
         }
-    }
-
-    private function calculatePeriodEnd(Carbon $startDate, string $frequency): Carbon
-    {
-        return match ($frequency) {
-            'daily' => $startDate->copy(),
-            'weekly' => $startDate->copy()->addDays(6),
-            'biweekly' => $startDate->copy()->addDays(13),
-            'monthly' => $startDate->copy()->addMonth()->subDay(),
-            'quarterly' => $startDate->copy()->addMonths(3)->subDay(),
-            'yearly' => $startDate->copy()->addYear()->subDay(),
-            default => $startDate->copy()->addMonth()->subDay(),
-        };
     }
 }

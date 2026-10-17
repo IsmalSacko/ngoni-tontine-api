@@ -16,7 +16,7 @@ use Illuminate\Support\Collection;
  * - Tontine rotative : la cotisation du tour en cours, si elle manque.
  * - Cotisation régulière : chaque période depuis l'inscription du membre ; les
  *   périodes closes impayées sont des retards, celle en cours est « à payer ».
- * - Part fixe : la part moins ce qui est déjà versé ; en retard après la date limite.
+ * - Une seule fois : la part moins ce qui est déjà versé ; en retard après la date limite.
  * - Collecte : rien n'est dû, chacun donne ce qu'il peut ; on montre ce qu'il a donné.
  */
 class GroupStatement
@@ -80,7 +80,7 @@ class GroupStatement
         $current = 0;
         $active = $enrollment->status !== 'paused';
 
-        if ($active && $caisse->type === Tontine::TYPE_PERIODIC) {
+        if ($active && $caisse->type === Tontine::TYPE_PERIODIC && ! $caisse->isOneTime()) {
             // Inscrit à la création de la caisse : il doit tout depuis son début,
             // même antidaté. Arrivé plus tard : rien d'avant son arrivée.
             $joinedLater = $enrollment->created_at && $caisse->created_at
@@ -104,7 +104,7 @@ class GroupStatement
 
         // Part fixe : il doit sa part, moins ce qu'il a déjà versé. Passé la date
         // limite, le reste est un retard.
-        if ($active && $caisse->type === Tontine::TYPE_SHARE) {
+        if ($active && $caisse->type === Tontine::TYPE_PERIODIC && $caisse->isOneTime()) {
             $remaining = max(0, $caisse->amount - (int) $payments->sum('amount'));
             if ($caisse->deadline && $caisse->deadline->copy()->endOfDay()->isPast()) {
                 $late = $remaining;

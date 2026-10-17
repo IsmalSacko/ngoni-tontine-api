@@ -93,7 +93,7 @@ class CycleController extends Controller
                 : Carbon::today());
         $currentPeriodEnd = $cycle->period_end
             ? Carbon::parse($cycle->period_end)->endOfDay()
-            : $this->calculatePeriodEnd($currentPeriodStart, $tontine->frequency)->endOfDay();
+            : ($tontine->periodEndFrom($currentPeriodStart) ?? Carbon::today())->endOfDay();
 
         // Compléter les champs de période du cycle courant si absents
         if (! $cycle->period_start || ! $cycle->period_end) {
@@ -104,7 +104,7 @@ class CycleController extends Controller
         }
 
         $nextPeriodStart = $currentPeriodEnd->copy()->addDay()->startOfDay();
-        $nextPeriodEnd = $this->calculatePeriodEnd($nextPeriodStart, $tontine->frequency);
+        $nextPeriodEnd = $tontine->periodEndFrom($nextPeriodStart);
 
         // Créer le cycle suivant
         $nextCycle = Cycle::create([
@@ -113,7 +113,7 @@ class CycleController extends Controller
             'beneficiary_id' => $nextBeneficiary?->id,
             'status' => 'active',
             'period_start' => $nextPeriodStart->toDateString(),
-            'period_end' => $nextPeriodEnd->toDateString(),
+            'period_end' => $nextPeriodEnd?->toDateString(),
         ]);
 
         return response()->json([
@@ -176,19 +176,6 @@ class CycleController extends Controller
         }
 
         return $nextBeneficiary;
-    }
-
-    private function calculatePeriodEnd(Carbon $startDate, string $frequency): Carbon
-    {
-        return match ($frequency) {
-            'daily' => $startDate->copy(),
-            'weekly' => $startDate->copy()->addDays(6),
-            'biweekly' => $startDate->copy()->addDays(13),
-            'monthly' => $startDate->copy()->addMonth()->subDay(),
-            'quarterly' => $startDate->copy()->addMonths(3)->subDay(),
-            'yearly' => $startDate->copy()->addYear()->subDay(),
-            default => $startDate->copy()->addMonth()->subDay(),
-        };
     }
 
     /**

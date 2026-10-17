@@ -153,9 +153,9 @@ it('does not charge a newcomer for periods closed before he joined', function ()
 it('tracks a fixed share paid little by little (château d\'eau)', function () {
     $group = village();
     $id = $this->postJson('/api/tontines', [
-        'name' => 'Château d\'eau', 'type' => 'share', 'amount' => 200000,
+        'name' => 'Château d\'eau', 'type' => 'periodic', 'frequency' => 'once', 'amount' => 200000,
         'deadline' => now()->addMonths(6)->toDateString(), 'group_id' => $group->id,
-    ])->assertCreated()->assertJsonPath('data.type', 'share')->json('data.id');
+    ])->assertCreated()->assertJsonPath('data.frequency', 'once')->json('data.id');
     $moussa = Tontine::find($id)->members()->where('name', 'Moussa')->first();
 
     foreach ([50000, 30000] as $amount) {
@@ -177,11 +177,30 @@ it('tracks a fixed share paid little by little (château d\'eau)', function () {
     expect($line['late_amount'])->toBe(120000)->and($line['status'])->toBe('en_retard');
 });
 
-it('needs the share amount, not a frequency, for a fixed share', function () {
-    $this->postJson('/api/tontines', ['name' => 'Château', 'type' => 'share'])
+it('needs the share of each member for a one-time contribution', function () {
+    $this->postJson('/api/tontines', ['name' => 'Château', 'type' => 'periodic', 'frequency' => 'once'])
         ->assertUnprocessable()
-        ->assertJsonValidationErrors('amount')
-        ->assertJsonMissingValidationErrors('frequency');
+        ->assertJsonValidationErrors('amount');
+});
+
+it('accepts a free frequency: every 2 months', function () {
+    $this->travelTo('2026-01-01');
+    $id = $this->postJson('/api/tontines', [
+        'name' => 'Bimestrielle', 'type' => 'periodic', 'amount' => 30,
+        'frequency' => 'custom', 'period_count' => 2, 'period_unit' => 'month', 'start_date' => '2025-01-01',
+    ])->assertCreated()
+        ->assertJsonPath('data.period_count', 2)
+        ->assertJsonPath('data.period_unit', 'month')
+        ->json('data.id');
+
+    $cycles = Tontine::find($id)->cycles()->orderBy('cycle_number')->get();
+    // Janvier 2025 à décembre 2025 : 6 périodes de 2 mois, puis celle de janvier 2026.
+    expect($cycles)->toHaveCount(7)
+        ->and($cycles[1]->period_start->toDateString())->toBe('2025-03-01')
+        ->and($cycles->last()->status)->toBe('active');
+
+    $this->postJson('/api/tontines', ['name' => 'X', 'amount' => 1, 'frequency' => 'custom'])
+        ->assertJsonValidationErrors(['period_count', 'period_unit']);
 });
 
 it('gives the group currency to its caisses, unless one has its own', function () {

@@ -14,6 +14,8 @@ class Tontine extends Model
         'currency',
         'deadline',
         'frequency',
+        'period_count',
+        'period_unit',
         'description',
         'start_date',
         'created_by',
@@ -30,16 +32,20 @@ class Tontine extends Model
     /** Chacun donne ce qu'il peut, vers un objectif (mosquée, forage). */
     const TYPE_FUNDRAISING = 'fundraising';
 
-    /**
-     * Chacun doit une part fixe, une fois, qu'il verse petit à petit (château
-     * d'eau : 200 000 F par membre).
-     */
-    const TYPE_SHARE = 'share';
-
-    const TYPES = [self::TYPE_ROTATING, self::TYPE_PERIODIC, self::TYPE_FUNDRAISING, self::TYPE_SHARE];
+    const TYPES = [self::TYPE_ROTATING, self::TYPE_PERIODIC, self::TYPE_FUNDRAISING];
 
     /** Monnaies proposées : celles de l'Afrique de l'Ouest et de la diaspora. */
     const CURRENCIES = ['XOF', 'XAF', 'GNF', 'EUR', 'USD', 'CAD', 'GBP', 'CHF', 'CNY', 'MAD', 'AED'];
+
+    /** Une seule période : chacun doit sa part, qu'il verse petit à petit (château d'eau). */
+    const FREQUENCY_ONCE = 'once';
+
+    /** Tous les [period_count] [period_unit] : « tous les 2 mois ». */
+    const FREQUENCY_CUSTOM = 'custom';
+
+    const FREQUENCIES = ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly', self::FREQUENCY_ONCE, self::FREQUENCY_CUSTOM];
+
+    const PERIOD_UNITS = ['day', 'week', 'month', 'year'];
 
     const FREQUENCY_DAILY = 'daily';
 
@@ -113,6 +119,38 @@ class Tontine extends Model
     public function expenses(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Expense::class);
+    }
+
+    public function isOneTime(): bool
+    {
+        return $this->frequency === self::FREQUENCY_ONCE;
+    }
+
+    /**
+     * Fin de la période qui commence le [$start] : la veille du début de la
+     * suivante. Une cotisation « une seule fois » court jusqu'à sa date limite,
+     * ou n'a pas de fin.
+     */
+    public function periodEndFrom(\Carbon\Carbon $start): ?\Carbon\Carbon
+    {
+        $start = $start->copy();
+
+        return match ($this->frequency) {
+            'daily' => $start,
+            'weekly' => $start->addDays(6),
+            'biweekly' => $start->addDays(13),
+            'monthly' => $start->addMonth()->subDay(),
+            'quarterly' => $start->addMonths(3)->subDay(),
+            'yearly' => $start->addYear()->subDay(),
+            self::FREQUENCY_ONCE => $this->deadline?->copy(),
+            self::FREQUENCY_CUSTOM => match ($this->period_unit) {
+                'day' => $start->addDays(max(1, (int) $this->period_count) - 1),
+                'week' => $start->addWeeks(max(1, (int) $this->period_count))->subDay(),
+                'year' => $start->addYears(max(1, (int) $this->period_count))->subDay(),
+                default => $start->addMonths(max(1, (int) $this->period_count))->subDay(),
+            },
+            default => $start->addMonth()->subDay(),
+        };
     }
 
     public function isRotating(): bool

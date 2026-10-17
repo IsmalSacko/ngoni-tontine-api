@@ -28,6 +28,8 @@ class TontineResource extends JsonResource
             'total_collected' => (int) ($this->payments_sum_amount ?? $this->payments()->sum('amount')),
             'total_spent' => (int) ($this->expenses_sum_amount ?? $this->expenses()->sum('amount')),
             'frequency' => $this->frequency,
+            'period_count' => $this->period_count,
+            'period_unit' => $this->period_unit,
             'description' => $this->description,
             'members_count' => $this->members_count, // Attribut virtuel défini dans le modèle
             'start_date' => $this->start_date,
