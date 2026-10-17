@@ -20,6 +20,7 @@ class TontineResource extends JsonResource
             'type' => $this->type ?? 'rotating',
             'group_id' => $this->group_id,
             'amount' => $this->amount,
+            'currency' => $this->currency ?? 'XOF',
             'target_amount' => $this->target_amount,
             'deadline' => $this->deadline?->toDateString(),
             // Entrées, sorties et solde de la caisse. Pour une tontine rotative,

@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Group extends Model
 {
-    protected $fillable = ['name', 'description', 'created_by'];
+    protected $fillable = ['name', 'description', 'currency', 'created_by'];
 
     public function creator(): BelongsTo
     {

@@ -16,7 +16,6 @@ return new class extends Migration
             $table->string('pin_code', 4)->after('phone'); // PIN OBLIGATOIRE
         });
 
-
     }
 
     /**

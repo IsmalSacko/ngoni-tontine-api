@@ -7,6 +7,7 @@ use App\Http\Requests\StoreGroupMemberRequest;
 use App\Http\Resources\TontineResource;
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\Tontine;
 use App\Services\GroupStatement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,7 +33,9 @@ class GroupController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
+            'currency' => 'nullable|in:'.implode(',', Tontine::CURRENCIES),
         ], ['name.required' => 'Donnez un nom au groupe.']);
+        $data['currency'] ??= 'XOF';
 
         $group = Group::create([...$data, 'created_by' => $request->user()->id]);
 
@@ -65,6 +68,7 @@ class GroupController extends Controller
         $group->update($request->validate([
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|nullable|string|max:1000',
+            'currency' => 'sometimes|in:'.implode(',', Tontine::CURRENCIES),
         ]));
 
         return response()->json(['data' => $group->loadCount(['members', 'caisses'])]);

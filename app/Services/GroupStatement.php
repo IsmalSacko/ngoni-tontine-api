@@ -124,6 +124,7 @@ class GroupStatement
             'tontine_id' => $caisse->id,
             'name' => $caisse->name,
             'type' => $caisse->type,
+            'currency' => $caisse->currency ?? 'XOF',
             'paid_total' => (int) $payments->sum('amount'),
             'late_amount' => $late,
             'current_due' => $current,

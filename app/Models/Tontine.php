@@ -11,6 +11,7 @@ class Tontine extends Model
         'type',
         'amount',
         'target_amount',
+        'currency',
         'deadline',
         'frequency',
         'description',
@@ -36,6 +37,9 @@ class Tontine extends Model
     const TYPE_SHARE = 'share';
 
     const TYPES = [self::TYPE_ROTATING, self::TYPE_PERIODIC, self::TYPE_FUNDRAISING, self::TYPE_SHARE];
+
+    /** Monnaies proposées : celles de l'Afrique de l'Ouest et de la diaspora. */
+    const CURRENCIES = ['XOF', 'XAF', 'GNF', 'EUR', 'USD', 'CAD', 'GBP', 'CHF', 'CNY', 'MAD', 'AED'];
 
     const FREQUENCY_DAILY = 'daily';
 

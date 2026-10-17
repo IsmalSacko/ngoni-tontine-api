@@ -51,6 +51,7 @@ class CreateTontineRequest extends FormRequest
             'start_date' => 'nullable|date',
             'deadline' => 'nullable|date',
             'group_id' => 'nullable|integer|exists:groups,id',
+            'currency' => 'nullable|in:'.implode(',', Tontine::CURRENCIES),
         ];
     }
 

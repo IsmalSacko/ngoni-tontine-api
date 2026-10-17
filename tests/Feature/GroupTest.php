@@ -183,3 +183,17 @@ it('needs the share amount, not a frequency, for a fixed share', function () {
         ->assertJsonValidationErrors('amount')
         ->assertJsonMissingValidationErrors('frequency');
 });
+
+it('gives the group currency to its caisses, unless one has its own', function () {
+    $id = $this->postJson('/api/groups', ['name' => 'Section France', 'currency' => 'EUR'])
+        ->assertCreated()->assertJsonPath('data.currency', 'EUR')->json('data.id');
+
+    $this->postJson('/api/tontines', ['name' => 'Décès', 'type' => 'periodic', 'amount' => 20, 'frequency' => 'monthly', 'group_id' => $id])
+        ->assertJsonPath('data.currency', 'EUR');
+    $this->postJson('/api/tontines', ['name' => 'Section USA', 'type' => 'periodic', 'amount' => 25, 'frequency' => 'monthly', 'group_id' => $id, 'currency' => 'USD'])
+        ->assertJsonPath('data.currency', 'USD');
+    $this->postJson('/api/tontines', ['name' => 'Au pays', 'amount' => 5000, 'frequency' => 'monthly'])
+        ->assertJsonPath('data.currency', 'XOF');
+    $this->postJson('/api/tontines', ['name' => 'X', 'amount' => 1, 'frequency' => 'monthly', 'currency' => 'BTC'])
+        ->assertJsonValidationErrors('currency');
+});

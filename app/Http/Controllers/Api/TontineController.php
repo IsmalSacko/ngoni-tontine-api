@@ -37,6 +37,8 @@ class TontineController extends Controller
             // qu'il peut. Les colonnes restent remplies pour les anciennes apps.
             'amount' => $request->integer('amount'),
             'frequency' => $request->input('frequency') ?? Tontine::FREQUENCY_MONTHLY,
+            // La monnaie du groupe, sauf si la caisse en a une à elle.
+            'currency' => $request->input('currency') ?? $group?->currency ?? 'XOF',
             'created_by' => auth()->id(),
         ]);
 
