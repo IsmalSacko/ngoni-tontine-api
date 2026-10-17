@@ -12,6 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        /** `MODIFY` n'existe qu'en MySQL ; une base neuve crée déjà la colonne nullable. */
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         Schema::table('cycles', function (Blueprint $table) {
             $table->dropForeign(['beneficiary_id']);
         });

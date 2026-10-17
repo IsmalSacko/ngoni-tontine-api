@@ -8,6 +8,7 @@ class TontineMember extends Model
 {
     protected $fillable = [
         'tontine_id',
+        'group_member_id',
         'name',
         'phone',
         'role',
@@ -25,4 +26,3 @@ class TontineMember extends Model
         return $this->hasMany(Payment::class);
     }
 }
-

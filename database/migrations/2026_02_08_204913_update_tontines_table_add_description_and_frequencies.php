@@ -12,6 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        /** Rattrapage d'une base MySQL ancienne ; une base neuve a déjà tout dès la création. */
+        if (DB::getDriverName() !== 'mysql' || Schema::hasColumn('tontines', 'description')) {
+            return;
+        }
+
         Schema::table('tontines', function (Blueprint $table) {
             // Ajouter la colonne description
             $table->text('description')->nullable()->after('frequency');

@@ -38,20 +38,21 @@ class CreateTontineRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-    public function rules() : array
+    public function rules(): array
     {
         return [
             'name' => 'required|string|max:255',
-            'amount' => 'required|integer|min:1',
-            'frequency' => 'required|in:daily,weekly,monthly,quarterly,yearly',
+            'type' => 'sometimes|in:'.implode(',', Tontine::TYPES),
+            'amount' => 'required_unless:type,fundraising|nullable|integer|min:1',
+            'frequency' => 'required_unless:type,fundraising|nullable|in:daily,weekly,monthly,quarterly,yearly',
+            'target_amount' => 'required_if:type,fundraising|nullable|integer|min:1',
             'description' => 'nullable|string|max:1000',
             'start_date' => 'nullable|date',
+            'deadline' => 'nullable|date',
+            'group_id' => 'nullable|integer|exists:groups,id',
         ];
     }
 
-    /**
-     * Messages de validation personnalisés
-     */
     public function messages(): array
     {
         return [
@@ -60,6 +61,9 @@ class CreateTontineRequest extends FormRequest
             'amount.min' => 'Le montant doit être supérieur à 0.',
             'frequency.required' => 'La fréquence est requise.',
             'frequency.in' => 'La fréquence sélectionnée n\'est pas valide.',
+            'amount.required_unless' => 'Le montant de la cotisation est requis.',
+            'frequency.required_unless' => 'La fréquence est requise.',
+            'target_amount.required_if' => 'L\'objectif de la collecte est requis.',
         ];
     }
 }
