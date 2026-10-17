@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CycleController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\GroupController;
+use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\MemberSpaceController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\TontineController;
@@ -25,6 +26,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/declarations/{declaration}/approve', [MemberSpaceController::class, 'approve']);
     Route::post('/declarations/{declaration}/reject', [MemberSpaceController::class, 'reject']);
     Route::get('/declarations/{declaration}/proof', [MemberSpaceController::class, 'proof']);
+
+    // Rejoindre par QR code : invitation, demande d'adhésion, décision du bureau
+    Route::post('/groups/{group}/invitation', [InvitationController::class, 'forGroup']);
+    Route::post('/tontines/{tontine}/invitation', [InvitationController::class, 'forTontine']);
+    Route::post('/invitations/{token}/renew', [InvitationController::class, 'renew']);
+    Route::get('/invitations/{token}', [InvitationController::class, 'show']);
+    Route::post('/invitations/{token}/join', [InvitationController::class, 'join']);
+    Route::get('/join-requests/pending', [InvitationController::class, 'pending']);
+    Route::post('/join-requests/{joinRequest}/approve', [InvitationController::class, 'approve']);
+    Route::post('/join-requests/{joinRequest}/reject', [InvitationController::class, 'reject']);
 
     // Groupes (associations) : membres communs à plusieurs caisses
     Route::get('/groups', [GroupController::class, 'index']);
