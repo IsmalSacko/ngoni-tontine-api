@@ -113,7 +113,10 @@ class MemberSpaceController extends Controller
             ->with(['tontine', 'member', 'cycle'])
             ->oldest()
             ->get()
-            ->filter(fn (PaymentDeclaration $d) => $d->tontine?->isManagedBy($user))
+            // Sa propre déclaration ne se valide pas soi-même : un autre membre
+            // du bureau s'en charge.
+            ->filter(fn (PaymentDeclaration $d) => (int) $d->user_id !== (int) $user->id
+                && $d->tontine?->isManagedBy($user))
             ->map(fn (PaymentDeclaration $d) => [
                 ...$d->toArray(),
                 'tontine' => $d->tontine->only(['id', 'name', 'type', 'currency']),
@@ -185,6 +188,9 @@ class MemberSpaceController extends Controller
     {
         if (! $declaration->tontine?->isManagedBy($user)) {
             return response()->json(['message' => 'Seul le bureau de la caisse peut valider.'], 403);
+        }
+        if ((int) $declaration->user_id === (int) $user->id) {
+            return response()->json(['message' => 'Un autre membre du bureau doit valider votre propre paiement.'], 403);
         }
         if ($declaration->status !== PaymentDeclaration::PENDING) {
             return response()->json(['message' => 'Cette déclaration a déjà été traitée.'], 400);

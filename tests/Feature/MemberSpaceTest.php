@@ -101,3 +101,18 @@ it('lets nobody but the bureau decide', function () {
     $this->postJson("/api/declarations/{$id}/approve")->assertForbidden();
     $this->getJson('/api/declarations/pending')->assertJsonCount(0, 'data');
 });
+
+it('never lets someone validate his own declaration, even from the bureau', function () {
+    // Moussa est président : il gère la caisse, et y cotise.
+    $this->moussa->update(['role' => 'presidente']);
+    Sanctum::actingAs($this->moussaUser);
+    $id = $this->postJson("/api/tontines/{$this->caisse->id}/declarations", ['amount' => 20, 'method' => 'cash'])->json('data.id');
+
+    $this->getJson('/api/declarations/pending')->assertJsonCount(0, 'data');
+    $this->postJson("/api/declarations/{$id}/approve")->assertForbidden();
+
+    // La créatrice, elle, la voit et la valide.
+    Sanctum::actingAs($this->owner);
+    $this->getJson('/api/declarations/pending')->assertJsonCount(1, 'data');
+    $this->postJson("/api/declarations/{$id}/approve")->assertOk();
+});
