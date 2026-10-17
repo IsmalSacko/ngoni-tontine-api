@@ -70,9 +70,12 @@ class GroupStatement
     }
 
     /**
+     * Situation d'un membre dans une caisse ; la caisse doit avoir ses cycles et
+     * ses paiements chargés.
+     *
      * @return array<string, mixed>
      */
-    private function line(Tontine $caisse, TontineMember $enrollment): array
+    public function line(Tontine $caisse, TontineMember $enrollment): array
     {
         $payments = $caisse->payments->where('tontine_member_id', $enrollment->id);
         $paidIn = fn (Cycle $cycle): int => (int) $payments->where('cycle_id', $cycle->id)->sum('amount');

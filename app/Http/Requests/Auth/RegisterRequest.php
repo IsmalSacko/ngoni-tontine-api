@@ -22,7 +22,16 @@ class RegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone' => 'required|unique:users,phone',
+            'phone' => [
+                'required',
+                'string',
+                // Le même numéro, écrit autrement, a déjà un compte.
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (\App\Models\User::findByPhone((string) $value) !== null) {
+                        $fail('Ce numéro a déjà un compte. Connectez-vous.');
+                    }
+                },
+            ],
             'name' => 'required|string',
             'pin_code' => 'required|string|size:4',
         ];

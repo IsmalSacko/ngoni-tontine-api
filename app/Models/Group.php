@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Phone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -40,8 +41,9 @@ class Group extends Model
 
         return $this->members()
             ->whereIn('role', ['presidente', 'tresoriere'])
-            ->where('phone', $user->phone)
-            ->exists();
+            ->where('phone', 'like', '%'.Phone::tail($user->phone))
+            ->get()
+            ->contains(fn ($member) => Phone::same($member->phone, $user->phone));
     }
 
     /**

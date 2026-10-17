@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\Phone;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -39,6 +40,23 @@ class User extends Authenticatable
         'pin_code',
     ];
 
+    /**
+     * Le compte de ce numéro, quelle que soit son écriture (« 76000001 »,
+     * « +223 76 00 00 01 »).
+     */
+    public static function findByPhone(?string $phone): ?self
+    {
+        $tail = Phone::tail($phone);
+        if ($tail === '') {
+            return null;
+        }
+
+        return self::query()
+            ->where('phone', 'like', '%'.$tail)
+            ->get()
+            ->first(fn (self $user) => Phone::same($user->phone, $phone));
+    }
+
     public function tontines()
     {
         return $this->hasMany(Tontine::class, 'created_by');
@@ -47,5 +65,13 @@ class User extends Authenticatable
     public function ValidatedPayments()
     {
         return $this->hasMany(Payment::class, 'validated_by');
+    }
+
+    /** Le numéro s'enregistre sans espaces ni tirets : voir [Phone::clean()]. */
+    protected function phone(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            set: fn (?string $value) => \App\Support\Phone::clean($value),
+        );
     }
 }

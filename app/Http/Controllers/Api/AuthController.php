@@ -31,7 +31,7 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request)
     {
-        $user = User::where('phone', $request->phone)->first();
+        $user = User::findByPhone($request->phone);
         if (! $user || $user->pin_code !== $request->pin_code) {
             return response()->json(['message' => 'Identifiants invalides'], 401);
         }

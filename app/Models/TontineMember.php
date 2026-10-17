@@ -25,4 +25,12 @@ class TontineMember extends Model
     {
         return $this->hasMany(Payment::class);
     }
+
+    /** Le numéro s'enregistre sans espaces ni tirets : voir [Phone::clean()]. */
+    protected function phone(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            set: fn (?string $value) => \App\Support\Phone::clean($value),
+        );
+    }
 }

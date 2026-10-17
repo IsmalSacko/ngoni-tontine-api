@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CycleController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\GroupController;
+use App\Http\Controllers\Api\MemberSpaceController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\TontineController;
 use App\Http\Controllers\Api\TontineMemberController;
@@ -16,6 +17,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/upload-avatar', [AuthController::class, 'uploadAvatar']);
     Route::post('/change-pin', [AuthController::class, 'changePin']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    // Espace membre : ma situation dans les caisses où je suis inscrit, mes
+    // déclarations de paiement ; et, pour le bureau, leur validation.
+    Route::get('/me/caisses', [MemberSpaceController::class, 'caisses']);
+    Route::post('/tontines/{tontine}/declarations', [MemberSpaceController::class, 'declare']);
+    Route::get('/declarations/pending', [MemberSpaceController::class, 'pending']);
+    Route::post('/declarations/{declaration}/approve', [MemberSpaceController::class, 'approve']);
+    Route::post('/declarations/{declaration}/reject', [MemberSpaceController::class, 'reject']);
+    Route::get('/declarations/{declaration}/proof', [MemberSpaceController::class, 'proof']);
+
     // Groupes (associations) : membres communs à plusieurs caisses
     Route::get('/groups', [GroupController::class, 'index']);
     Route::post('/groups', [GroupController::class, 'store']);
