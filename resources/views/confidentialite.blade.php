@@ -59,7 +59,8 @@
             <p>Les données sont conservées tant que votre compte est actif. L'historique d'une caisse est gardé tant que la caisse existe, car il appartient aussi à ses autres membres.</p>
 
             <h2 id="suppression">Supprimer votre compte</h2>
-            <p>Écrivez à <a href="mailto:ismalsacko@yahoo.fr?subject=Suppression%20de%20mon%20compte%20Ngoni%20Tontine">ismalsacko@yahoo.fr</a> depuis votre adresse, en indiquant le numéro de téléphone du compte. Nous supprimons sous 30 jours votre compte, votre profil, votre photo et les reçus que vous avez envoyés. Les cotisations notées dans les caisses d'autres personnes restent dans leur historique, sans lien avec votre compte.</p>
+            <p>Dans l'app : <strong>Compte → Supprimer mon compte</strong>, puis votre code PIN. Le compte, les caisses et groupes que vous avez créés, leurs membres et leurs paiements sont effacés tout de suite.</p>
+            <p>Sans l'app, écrivez à <a href="mailto:ismalsacko@yahoo.fr?subject=Suppression%20de%20mon%20compte%20Ngoni%20Tontine">ismalsacko@yahoo.fr</a> depuis votre adresse, en indiquant le numéro de téléphone du compte. Nous supprimons sous 30 jours votre compte, votre profil, votre photo et les reçus que vous avez envoyés. Les cotisations notées dans les caisses d'autres personnes restent dans leur historique, sans lien avec votre compte.</p>
 
             <h2>Vos droits</h2>
             <ul>

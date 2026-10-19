@@ -12,9 +12,15 @@ use Illuminate\Http\Request;
 
 class TontineController extends Controller
 {
-    public function index()
+    /** Mes caisses ; les archivées avec `?archived=1`. */
+    public function index(Request $request)
     {
         $tontines = auth()->user()->tontines()
+            ->when(
+                $request->boolean('archived'),
+                fn ($q) => $q->whereNotNull('archived_at'),
+                fn ($q) => $q->whereNull('archived_at'),
+            )
             ->with(['members', 'cycles'])
             ->withSum('payments', 'amount')
             ->withSum('expenses', 'amount')
@@ -72,6 +78,7 @@ class TontineController extends Controller
 
     public function show(Tontine $tontine)
     {
+        $tontine->ensureFirstCycle();
         $tontine->load(['members', 'cycles', 'payments'])
             ->loadSum('payments', 'amount')
             ->loadSum('expenses', 'amount');
@@ -99,12 +106,30 @@ class TontineController extends Controller
         return new TontineResource($tontine);
     }
 
+    /**
+     * Supprime la caisse et son historique : sa créatrice seulement. L'app
+     * propose d'abord l'archivage quand de l'argent y est enregistré.
+     */
     public function destroy(Tontine $tontine)
     {
-        $this->authorize('delete', $tontine);
-        $tontine->delete();
+        if ((int) $tontine->created_by !== (int) auth()->id()) {
+            return response()->json(['message' => 'Seule la personne qui a créé la caisse peut la supprimer.'], 403);
+        }
+        $tontine->purge();
 
-        return response()->json(['message' => 'Tontine supprimée avec succès'], 200);
+        return response()->json(['message' => 'Caisse supprimée']);
+    }
+
+    /** Archive (ou ressort des archives) : le bureau. */
+    public function archive(Request $request, Tontine $tontine)
+    {
+        if (! $tontine->isManagedBy($request->user())) {
+            return response()->json(['message' => 'Seul le bureau de la caisse peut l\'archiver.'], 403);
+        }
+        $tontine->update(['archived_at' => $request->boolean('archived', true) ? now() : null]);
+        $tontine->load('members', 'cycles')->loadSum('payments', 'amount')->loadSum('expenses', 'amount');
+
+        return new TontineResource($tontine);
     }
 
     /**

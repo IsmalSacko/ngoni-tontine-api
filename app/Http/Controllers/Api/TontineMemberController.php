@@ -40,14 +40,21 @@ class TontineMemberController extends Controller
 
     public function store(AddMemberRequest $request, Tontine $tontine)
     {
+        if (! $tontine->isManagedBy($request->user())) {
+            return $this->forbidden();
+        }
+
         return $tontine->members()->create($request->validated());
     }
 
     public function update(Request $request, Tontine $tontine, TontineMember $member)
     {
         // Vérifier que le membre appartient à la tontine
-        if ($member->tontine_id !== $tontine->id) {
+        if ((int) $member->tontine_id !== (int) $tontine->id) {
             return response()->json(['error' => 'Not found'], 404);
+        }
+        if (! $tontine->isManagedBy(auth()->user())) {
+            return $this->forbidden();
         }
 
         $request->validate([
@@ -64,10 +71,18 @@ class TontineMemberController extends Controller
     public function destroy(Tontine $tontine, TontineMember $member)
     {
         // Vérifier que le membre appartient à la tontine
-        if ($member->tontine_id !== $tontine->id) {
+        if ((int) $member->tontine_id !== (int) $tontine->id) {
             return response()->json(['error' => 'Not found'], 404);
         }
+        if (! $tontine->isManagedBy(auth()->user())) {
+            return $this->forbidden();
+        }
 
+        // Ses paiements partiraient avec lui : les comptes de la caisse seraient faux.
+        if ($member->payments()->exists()) {
+            return response()->json(['message' => 'Ce membre a déjà payé : mettez-le en pause, ses paiements restent dans les comptes.'], 422);
+        }
+        \App\Models\Cycle::where('beneficiary_id', $member->id)->update(['beneficiary_id' => null]);
         $member->delete();
 
         return response()->json(['message' => 'Membre supprimé avec succès'], 200);
@@ -76,8 +91,11 @@ class TontineMemberController extends Controller
     public function pause(Tontine $tontine, TontineMember $member)
     {
         // Vérifier que le membre appartient à la tontine
-        if ($member->tontine_id !== $tontine->id) {
+        if ((int) $member->tontine_id !== (int) $tontine->id) {
             return response()->json(['error' => 'Not found'], 404);
+        }
+        if (! $tontine->isManagedBy(auth()->user())) {
+            return $this->forbidden();
         }
 
         // Marquer comme en pause au lieu de supprimer
@@ -89,13 +107,21 @@ class TontineMemberController extends Controller
     public function resume(Tontine $tontine, TontineMember $member)
     {
         // Vérifier que le membre appartient à la tontine
-        if ($member->tontine_id !== $tontine->id) {
+        if ((int) $member->tontine_id !== (int) $tontine->id) {
             return response()->json(['error' => 'Not found'], 404);
+        }
+        if (! $tontine->isManagedBy(auth()->user())) {
+            return $this->forbidden();
         }
 
         // Réactiver le membre
         $member->update(['status' => 'active']);
 
         return response()->json(['message' => 'Membre réactivé'], 200);
+    }
+
+    private function forbidden()
+    {
+        return response()->json(['message' => 'Seul le bureau de la caisse peut gérer ses membres.'], 403);
     }
 }

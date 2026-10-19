@@ -21,6 +21,7 @@ class Tontine extends Model
         'start_date',
         'created_by',
         'group_id',
+        'archived_at',
     ];
 
     // Fréquences disponibles
@@ -83,6 +84,7 @@ class Tontine extends Model
     protected $casts = [
         'deadline' => 'date',
         'target_amount' => 'integer',
+        'archived_at' => 'datetime',
     ];
 
     protected $appends = ['members_count'];
@@ -152,6 +154,40 @@ class Tontine extends Model
             },
             default => $start->addMonth()->subDay(),
         };
+    }
+
+    /**
+     * Les caisses créées avant que le premier tour ne soit ouvert d'office
+     * n'en ont aucun : on ne pouvait rien y encaisser. Il s'ouvre aujourd'hui.
+     */
+    public function ensureFirstCycle(): void
+    {
+        if ($this->cycles()->exists()) {
+            return;
+        }
+        $start = \Carbon\Carbon::today();
+        $this->cycles()->create([
+            'cycle_number' => 1,
+            'status' => 'active',
+            'beneficiary_id' => null,
+            'period_start' => $start->toDateString(),
+            'period_end' => $this->periodEndFrom($start)?->toDateString(),
+        ]);
+    }
+
+    /**
+     * Supprime la caisse et tout ce qu'elle contient. Dans l'ordre : les tours
+     * pointent vers leurs bénéficiaires, ils partent avant les membres.
+     */
+    public function purge(): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () {
+            $this->payments()->delete();
+            $this->expenses()->delete();
+            $this->cycles()->delete();
+            $this->members()->delete();
+            $this->delete();
+        });
     }
 
     public function isRotating(): bool

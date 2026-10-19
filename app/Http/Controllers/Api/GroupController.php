@@ -21,6 +21,11 @@ class GroupController extends Controller
     {
         $groups = Group::query()
             ->where('created_by', $request->user()->id)
+            ->when(
+                $request->boolean('archived'),
+                fn ($q) => $q->whereNotNull('archived_at'),
+                fn ($q) => $q->whereNull('archived_at'),
+            )
             ->withCount(['members', 'caisses'])
             ->orderBy('name')
             ->get();
@@ -44,7 +49,9 @@ class GroupController extends Controller
 
     public function show(Group $group): JsonResponse
     {
+        // Un groupe en activité montre ses caisses en cours ; archivé, toutes.
         $caisses = $group->caisses()
+            ->when($group->archived_at === null, fn ($q) => $q->whereNull('archived_at'))
             ->with(['members', 'cycles'])
             ->withSum('payments', 'amount')
             ->withSum('expenses', 'amount')
@@ -70,6 +77,30 @@ class GroupController extends Controller
             'description' => 'sometimes|nullable|string|max:1000',
             'currency' => 'sometimes|in:'.implode(',', Tontine::CURRENCIES),
         ]));
+
+        return response()->json(['data' => $group->loadCount(['members', 'caisses'])]);
+    }
+
+    /** Supprime le groupe et toutes ses caisses : son créateur seulement. */
+    public function destroy(Request $request, Group $group): JsonResponse
+    {
+        if ((int) $group->created_by !== (int) $request->user()->id) {
+            return response()->json(['message' => 'Seule la personne qui a créé le groupe peut le supprimer.'], 403);
+        }
+        $group->purge();
+
+        return response()->json(['message' => 'Groupe supprimé']);
+    }
+
+    /** Archive le groupe et ses caisses (ou les ressort) : le bureau. */
+    public function archive(Request $request, Group $group): JsonResponse
+    {
+        if (! $group->isManagedBy($request->user())) {
+            return $this->forbidden();
+        }
+        $at = $request->boolean('archived', true) ? now() : null;
+        $group->update(['archived_at' => $at]);
+        $group->caisses()->update(['archived_at' => $at]);
 
         return response()->json(['data' => $group->loadCount(['members', 'caisses'])]);
     }

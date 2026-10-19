@@ -18,6 +18,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/upload-avatar', [AuthController::class, 'uploadAvatar']);
     Route::post('/change-pin', [AuthController::class, 'changePin']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::delete('/account', [AuthController::class, 'destroy']);
     // Espace membre : ma situation dans les caisses où je suis inscrit, mes
     // déclarations de paiement ; et, pour le bureau, leur validation.
     Route::get('/me/caisses', [MemberSpaceController::class, 'caisses']);
@@ -42,6 +43,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/groups', [GroupController::class, 'store']);
     Route::get('/groups/{group}', [GroupController::class, 'show']);
     Route::patch('/groups/{group}', [GroupController::class, 'update']);
+    Route::delete('/groups/{group}', [GroupController::class, 'destroy']);
+    Route::post('/groups/{group}/archive', [GroupController::class, 'archive']);
     Route::get('/groups/{group}/statement', [GroupController::class, 'statement']);
     Route::post('/groups/{group}/members', [GroupController::class, 'storeMember']);
     Route::patch('/groups/{group}/members/{member}', [GroupController::class, 'updateMember']);
@@ -51,6 +54,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tontines', [TontineController::class, 'store']);
     Route::patch('/tontines/{tontine}', [TontineController::class, 'update']);
     Route::get('/tontines/{tontine}', [TontineController::class, 'show']);
+    Route::delete('/tontines/{tontine}', [TontineController::class, 'destroy']);
+    Route::post('/tontines/{tontine}/archive', [TontineController::class, 'archive']);
 
     Route::get('/tontines/{tontine}/members', [TontineMemberController::class, 'index']);
     Route::get('/tontines/{tontine}/members/paused', [TontineMemberController::class, 'paused']);
@@ -67,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tontines/{tontine}/expenses', [ExpenseController::class, 'store']);
     Route::delete('/tontines/{tontine}/expenses/{expense}', [ExpenseController::class, 'destroy']);
     Route::post('/payments', [PaymentController::class, 'store']);
+    Route::delete('/payments/{payment}', [PaymentController::class, 'destroy']);
 
     // Gestion des cycles
     Route::get('/tontines/{tontine}/cycles', [CycleController::class, 'index']);

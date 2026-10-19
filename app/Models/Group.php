@@ -12,7 +12,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Group extends Model
 {
-    protected $fillable = ['name', 'description', 'currency', 'created_by'];
+    protected $fillable = ['name', 'description', 'currency', 'created_by', 'archived_at'];
+
+    protected $casts = ['archived_at' => 'datetime'];
 
     public function creator(): BelongsTo
     {
@@ -44,6 +46,17 @@ class Group extends Model
             ->where('phone', 'like', '%'.Phone::tail($user->phone))
             ->get()
             ->contains(fn ($member) => Phone::same($member->phone, $user->phone));
+    }
+
+    /** Supprime le groupe, ses caisses et leur historique. */
+    public function purge(): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () {
+            foreach ($this->caisses as $caisse) {
+                $caisse->purge();
+            }
+            $this->delete();
+        });
     }
 
     /**

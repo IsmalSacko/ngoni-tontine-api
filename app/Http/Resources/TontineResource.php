@@ -19,6 +19,7 @@ class TontineResource extends JsonResource
             'name' => $this->name,
             'type' => $this->type ?? 'rotating',
             'group_id' => $this->group_id,
+            'archived_at' => $this->archived_at,
             'amount' => $this->amount,
             'currency' => $this->currency ?? 'XOF',
             'target_amount' => $this->target_amount,

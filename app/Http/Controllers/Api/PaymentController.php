@@ -20,6 +20,9 @@ class PaymentController extends Controller
         \Log::info('Payment request received:', $request->all());
 
         $tontineId = $request->input('tontine_id');
+        if (! Tontine::find($tontineId)->isManagedBy($request->user())) {
+            return response()->json(['message' => 'Seul le bureau de la caisse peut encaisser.'], 403);
+        }
         $cycleId = $request->input('cycle_id');
 
         // Récupérer ou créer le cycle pour cette tontine
@@ -59,5 +62,26 @@ class PaymentController extends Controller
         \Log::info('Payment created successfully:', ['payment_id' => $payment->id]);
 
         return $payment;
+    }
+
+    /**
+     * Annule un paiement saisi par erreur : le bureau. La déclaration qui l'a
+     * fait entrer, s'il y en a une, passe en refusée : le membre le voit.
+     */
+    public function destroy(Payment $payment)
+    {
+        if (! $payment->tontine->isManagedBy(auth()->user())) {
+            return response()->json(['message' => 'Seul le bureau de la caisse peut annuler un paiement.'], 403);
+        }
+        \App\Models\PaymentDeclaration::where('payment_id', $payment->id)
+            ->update([
+                'status' => 'rejected',
+                'decision_note' => 'Paiement annulé par le bureau',
+                'decided_by' => auth()->id(),
+                'decided_at' => now(),
+            ]);
+        $payment->delete();
+
+        return response()->json(['message' => 'Paiement annulé']);
     }
 }

@@ -91,6 +91,35 @@ class AuthController extends Controller
 
     }
 
+    /**
+     * Supprime le compte, les caisses et groupes qu'il a créés (avec leur
+     * historique) et sa photo. Le PIN confirme : un téléphone prêté ne suffit pas.
+     */
+    public function destroy(Request $request)
+    {
+        $request->validate(['pin_code' => 'required|string']);
+        $user = auth()->user();
+        if ($user->pin_code !== $request->pin_code) {
+            return response()->json(['message' => 'Le code PIN est incorrect'], 422);
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($user) {
+            foreach (\App\Models\Group::where('created_by', $user->id)->get() as $group) {
+                $group->purge();
+            }
+            foreach ($user->tontines()->get() as $tontine) {
+                $tontine->purge();
+            }
+            $user->tokens()->delete();
+            $user->delete();
+        });
+        if ($user->avatar && file_exists(storage_path('app/public/'.$user->avatar))) {
+            unlink(storage_path('app/public/'.$user->avatar));
+        }
+
+        return response()->json(['message' => 'Compte supprimé']);
+    }
+
     public function uploadAvatar(Request $request)
     {
         $request->validate([
