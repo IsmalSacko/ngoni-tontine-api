@@ -2,10 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 
-// Route d'accueil : affiche la vue home contenant les règles de confidentialité
-Route::get('/', function () {
-    return view('home');
-});
+// Politique de confidentialité de l'app (lien de la fiche Play Store). L'accueil
+// l'affiche aussi : c'est l'adresse que portait la première fiche.
+Route::view('/confidentialite', 'confidentialite');
+Route::view('/', 'confidentialite');
 
 // Lien d'invitation (QR code) : ouvre l'app si elle est installée, sinon les boutiques.
 Route::get('/rejoindre/{token}', function (string $token) {
