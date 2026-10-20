@@ -42,7 +42,7 @@
 
             <h2>Qui voit quoi</h2>
             <ul>
-                <li>Le bureau d'une caisse (présidente, trésorière) voit les membres, les cotisations et les dépenses de cette caisse.</li>
+                <li>Le bureau d'une caisse (président(e), trésorier(e)) voit les membres, les cotisations et les dépenses de cette caisse.</li>
                 <li>Un membre voit sa propre situation dans chaque caisse où il est inscrit, jamais les paiements des autres.</li>
             </ul>
 
